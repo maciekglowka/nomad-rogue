@@ -10,7 +10,8 @@ pub struct CommandEvent(pub CommandType);
 
 pub enum CommandType {
     SetInputMode(InputType),
-    PlaceStructure(Entity, Vector2Int)
+    PlaceStructure(Entity, Vector2Int),
+    UnplaceStructure(Vector2Int),
 }
 
 pub struct ManagerPlugin;
@@ -20,8 +21,10 @@ impl Plugin for ManagerPlugin {
         app.add_event::<CommandEvent>();
         app.add_system_set(
             SystemSet::on_update(GameState::BoardSetup)
+                .after("ui")
                 .with_system(set_input_type)
                 .with_system(place_structure)
+                .with_system(unplace_structure)
         );
     }
 }
@@ -29,10 +32,12 @@ impl Plugin for ManagerPlugin {
 fn set_input_type(
     mut ev_command: EventReader<CommandEvent>,
     mut input_assets: ResMut<InputAssets>,
+    mut ev_ui: EventWriter<ReloadUIEvent>
 ) {
     for ev in ev_command.iter() {
         if let CommandType::SetInputMode(mode) = ev.0 {
             input_assets.current_input = mode;
+            ev_ui.send(ReloadUIEvent);
         }
     }
 }
@@ -58,6 +63,25 @@ fn place_structure(
             ) {
                 ev_ui.send(ReloadUIEvent);
                 input_assets.current_input = InputType::None;
+            }
+        }
+    }
+}
+
+fn unplace_structure(
+    mut commands: Commands,
+    mut ev_command: EventReader<CommandEvent>,
+    struct_query: Query<(Entity, &tiles::TileElement), With<structures::Structure>>,
+    mut ev_ui: EventWriter<ReloadUIEvent>
+) {
+    for ev in ev_command.iter() {
+        if let CommandType::UnplaceStructure(v) = ev.0 {
+            if structures::unplace_structure(
+                &mut commands,
+                v,
+                &struct_query,
+            ) {
+                ev_ui.send(ReloadUIEvent);
             }
         }
     }

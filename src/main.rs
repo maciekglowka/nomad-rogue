@@ -11,6 +11,7 @@ mod states;
 mod structures;
 mod tiles;
 mod ui;
+mod utils;
 mod vectors;
 
 fn main() {
@@ -26,6 +27,7 @@ fn main() {
             }
         )
         .insert_resource(ImageSettings::default_nearest())
+        .insert_resource(Msaa { samples: 1 })
         .init_resource::<assets::AssetList>()
         .add_state(states::GameState::LoadAssets)
         .add_plugins(DefaultPlugins)

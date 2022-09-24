@@ -93,29 +93,20 @@ pub fn place_structure(
 //     }
 // }
 
-// fn unplace_structure(
-//     mut commands: Commands,
-//     mut ev_unplace: EventReader<UnPlaceStructureEvent>,
-//     // element_query: Query<Entity, With<TileElement>>,
-//     // struct_query: Query<&Children, With<Structure>>,
-// ) {
-//     for ev in ev_unplace.iter() {
-//         // let children = match struct_query.get(ev.0) {
-//         //     Ok(c) => c,
-//         //     Err(_) => continue
-//         // };
-
-//         // for &child in children.iter() {
-//         //     if let Ok(element) = element_query.get(child) {
-//         //         commands.entity(element)
-//         //             .despawn_recursive();
-//         //     }
-//         // }
-//         commands.entity(ev.0)
-//             .remove_bundle::<renderer::BUNDLE_TYPE>()
-//             .remove::<TileElement>();
-//     }
-// }
+pub fn unplace_structure(
+    mut commands: &mut Commands,
+    v: Vector2Int,
+    struct_query: &Query<(Entity, &TileElement), With<Structure>>,
+) -> bool {
+    if let Some((entity, _element)) = struct_query.iter()
+        .find(|(_, t)| t.v == v) {
+            commands.entity(entity)
+                .remove_bundle::<renderer::BUNDLE_TYPE>()
+                .remove::<TileElement>();
+            return true;
+        }
+    false
+}
 
 pub fn spawn_structure(
     mut commands: &mut Commands,

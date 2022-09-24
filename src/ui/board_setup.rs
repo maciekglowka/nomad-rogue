@@ -43,7 +43,9 @@ pub fn mouse(
     for (interaction, button) in interactions.iter() {
         match interaction {
             Interaction::Clicked => {
-                assets.current_input = InputType::PlaceStructure(button.entity);
+                ev_command.send(CommandEvent(
+                    CommandType::SetInputMode(InputType::PlaceStructure(button.entity))
+                ));
                 menu_interaction = true;       
             },
             _ => ()
@@ -66,7 +68,9 @@ pub fn mouse(
                 InputType::PlaceStructure(e) => ev_command.send(
                     CommandEvent(CommandType::PlaceStructure(e, v))
                 ),
-                _ => ()
+                InputType::None => ev_command.send(
+                    CommandEvent(CommandType::UnplaceStructure(v))
+                )
             }
         }
     }
@@ -74,25 +78,27 @@ pub fn mouse(
 
 pub fn init(
     mut commands: Commands,
-    struct_query: Query<(Entity, &structures::Structure), Without<tiles::TileElement>>
+    struct_query: Query<(Entity, &structures::Structure), Without<tiles::TileElement>>,
+    assets: Res<InputAssets>
 ) {
-    draw_structures_menu(&mut commands, &struct_query);
+    draw_structures_menu(&mut commands, &struct_query, &assets);
 }
 
 pub fn reload(
     mut commands: Commands,
     mut ev: EventReader<super::ReloadUIEvent>,
     menu_query: Query<Entity, With<StructuresMenu>>,
-    struct_query: Query<(Entity, &structures::Structure), Without<tiles::TileElement>>
+    struct_query: Query<(Entity, &structures::Structure), Without<tiles::TileElement>>,
+    assets: Res<InputAssets>
 ) {
     for _ in ev.iter() {
         clear_menus(&mut commands, &menu_query);
-        draw_structures_menu(&mut commands, &struct_query);
+        draw_structures_menu(&mut commands, &struct_query, &assets);
     }
 }
 
 fn clear_menus(
-    mut commands: &mut Commands,
+    commands: &mut Commands,
     query: &Query<Entity, With<StructuresMenu>>
 ) {
     for entity in query.iter() {
@@ -102,8 +108,9 @@ fn clear_menus(
 }
 
 fn draw_structures_menu(
-    mut commands: &mut Commands,
-    struct_query: &Query<(Entity, &structures::Structure), Without<tiles::TileElement>>
+    commands: &mut Commands,
+    struct_query: &Query<(Entity, &structures::Structure), Without<tiles::TileElement>>,
+    assets: &InputAssets
 ) {
     commands
         .spawn_bundle(NodeBundle {
@@ -122,25 +129,22 @@ fn draw_structures_menu(
         .with_children(|parent| {
             for (entity, structure) in struct_query.iter() {
                 let color = structures::get_structure_color(structure.kind);
+                let selected = match assets.current_input {
+                    InputType::PlaceStructure(e) => e == entity,
+                    _ => false
+                };
                 parent.spawn_bundle(
-                    get_structure_button_bundle(color)
+                    get_structure_button_bundle(color, selected)
                 )
                 .insert(StructureButton {entity });
             }
-            // for (idx, card) in assets.card_queue.iter().enumerate() {
-            //     let color = match card.action {
-            //         CardAction::ChangeBuilding(b) => {
-            //             crate::buildings::get_building_color(b.building_type, 1)
-            //         }
-            //     };
-            //     parent
-            //         .spawn_bundle(get_card_bundle(color))
-            //         .insert(CardButton { card_idx: idx });
-            // }
         });
 }
 
-fn get_structure_button_bundle(color: Color) -> ButtonBundle {
+fn get_structure_button_bundle(mut color: Color, selected: bool) -> ButtonBundle {
+    if selected {
+        color.set_a(0.5);
+    }
     ButtonBundle {
         style: Style {
             size: Size::new(BUTTON_WIDTH, BUTTON_HEIGHT),

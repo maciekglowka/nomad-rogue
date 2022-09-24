@@ -8,6 +8,7 @@ pub struct UIPlugin;
 
 mod board_setup;
 mod cursor;
+mod turn;
 
 pub struct ReloadUIEvent;
 
@@ -21,6 +22,11 @@ impl Plugin for UIPlugin {
             StartupStage::PreStartup,
             cursor::load_assets
         );
+        app.add_startup_system_to_stage(
+            StartupStage::PreStartup,
+            turn::load_assets
+        );
+
         app.add_startup_system(cursor::spawn_cursor);
         app.add_event::<cursor::UpdateCursorEvent>();
         app.add_system(cursor::update_cursor);
@@ -28,9 +34,11 @@ impl Plugin for UIPlugin {
         app.add_system_set(
             SystemSet::on_enter(GameState::BoardSetup)
                 .with_system(board_setup::init)
+                .with_system(turn::draw_path)
         );
         app.add_system_set(
             SystemSet::on_update(GameState::BoardSetup)
+                .label("ui")
                 .with_system(board_setup::keys)
                 .with_system(board_setup::mouse)
                 .with_system(board_setup::reload)
@@ -68,7 +76,7 @@ pub struct InputAssets {
     pub current_input: InputType
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub enum InputType {
     None,
     PlaceStructure(Entity)

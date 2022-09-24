@@ -3,6 +3,7 @@ pub const TILE_Z: f32 = 20.;
 pub const STRUCTURE_Z: f32 = 25.;
 
 pub const CURSOR_Z: f32 = 200.;
+pub const BOARD_UI_Z: f32 = 150.;
 
 
 pub const MAP_SIZE: i32 = 8;
