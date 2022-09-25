@@ -1,8 +1,7 @@
 use bevy::prelude::*;
 
 use crate::globals::{CURSOR_Z, TILE_SIZE};
-
-pub struct UpdateCursorEvent;
+use crate::vectors::Vector2Int;
 
 pub fn spawn_cursor(
     mut commands: Commands,
@@ -21,10 +20,21 @@ pub fn spawn_cursor(
 }
 
 pub fn update_cursor(
-    mut ev: EventReader<UpdateCursorEvent>
+    windows: Res<Windows>,
+    camera_query: Query<(&Camera, &GlobalTransform)>,
+    mut cursor_query: Query<&mut Transform, With<Cursor>>,
+    mut assets: ResMut<CursorAssets>
 ) {
-    for _ in ev.iter() {
-        
+    if let Some(world_v) = super::mouse_to_world(&windows, &camera_query) {
+        let v = super::world_to_tile_position(world_v);
+        if let Ok(mut cursor_transform) = cursor_query.get_single_mut() {
+            assets.v = Some(v);
+            cursor_transform.translation = Vec3::new(
+                v.x as f32 * TILE_SIZE,
+                v.y as f32 * TILE_SIZE,
+                CURSOR_Z
+            );
+        }
     }
 }
 
@@ -49,11 +59,13 @@ pub fn load_assets(
 
     commands.insert_resource(CursorAssets { 
         texture: atlas_handle,
+        v: None
     });
 }
 
 pub struct CursorAssets {
-    texture: Handle<TextureAtlas>
+    texture: Handle<TextureAtlas>,
+    pub v: Option<Vector2Int>
 }
 
 #[derive(Component)]

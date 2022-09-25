@@ -57,42 +57,6 @@ pub fn place_structure(
     false
 }
 
-// fn place_structure(
-//     mut commands: Commands,
-//     mut ev_place: EventReader<StructureEvent>,
-//     mut struct_query: Query<&Structure>,
-//     element_query: Query<&TileElement>,
-//     assets: Res<StructureAssets>
-// ) {
-//     for ev in ev_place.iter() {
-//         let (entity, v) = match ev.0 {
-//             StructureEventType::Place(e, v) => (e, v),
-//             _ => continue
-//         };
-
-//         // TODO change to use tile assets map ?
-//         if element_query.iter()
-//             .find(|e| e.v == v)
-//             .is_some() {
-//                 continue;
-//             }
-
-//         if let Ok(structure) = struct_query.get(entity) {
-//             // let element = commands.spawn_bundle(
-//             //     renderer::get_structure_renderer(v, &assets, structure.kind)
-//             // )
-//             // .insert(TileElement {v})
-//             // .id();
-//             // commands.entity(entity).push_children(&[element]);
-//             commands.entity(entity)
-//                 .insert_bundle(
-//                     renderer::get_structure_renderer(v, &assets, structure.kind)
-//                 )
-//                 .insert(TileElement {v});
-//         }
-//     }
-// }
-
 pub fn unplace_structure(
     mut commands: &mut Commands,
     v: Vector2Int,
@@ -114,7 +78,8 @@ pub fn spawn_structure(
 ) {
     commands.spawn()
     .insert(Structure {
-        kind
+        kind,
+        target: None
     });
 } 
 
@@ -129,5 +94,6 @@ pub enum StructureKind {
 
 #[derive(Component)]
 pub struct Structure {
-   pub kind: StructureKind
+   pub kind: StructureKind,
+   pub target: Option<Vector2Int>
 }

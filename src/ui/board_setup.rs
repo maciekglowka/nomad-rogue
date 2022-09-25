@@ -1,12 +1,12 @@
 use bevy::prelude::*;
 
-use crate::globals::{CURSOR_Z, TILE_SIZE};
 use crate::manager::{CommandEvent, CommandType};
+use crate::states::GameState;
 use crate::structures;
 use crate::tiles;
 
 use super::{
-    cursor::Cursor,
+    cursor::CursorAssets,
     InputAssets, 
     InputType
 };
@@ -22,21 +22,24 @@ const ZERO: Val = Val::Px(0.);
 pub struct StructuresMenu;
 
 pub fn keys(
-    keys: Res<Input<KeyCode>>,
+    mut keys: ResMut<Input<KeyCode>>,
     mut ev_command: EventWriter<CommandEvent>,
+    mut game_state: ResMut<State<GameState>>
 ) {
     if keys.just_pressed(KeyCode::Escape) {
         ev_command.send(CommandEvent(CommandType::SetInputMode(InputType::None)))
+    }
+    if keys.just_pressed(KeyCode::Return) {
+        game_state.set(crate::states::GameState::TurnPlanning);
+        keys.reset_all();
     }
 }
 
 pub fn mouse(
     buttons: Res<Input<MouseButton>>,
-    windows: Res<Windows>,
-    camera_query: Query<(&Camera, &GlobalTransform)>,
     mut assets: ResMut<InputAssets>,
     interactions: Query<(&Interaction, &StructureButton)>,
-    mut cursor_query: Query<&mut Transform, With<Cursor>>,
+    cursor: Res<CursorAssets>,
     mut ev_command: EventWriter<CommandEvent>
 ) {
     let mut menu_interaction = false;
@@ -53,24 +56,16 @@ pub fn mouse(
     }
     if menu_interaction { return; }
 
-    if let Some(world_v) = super::mouse_to_world(&windows, &camera_query) {
-        let v = super::world_to_tile_position(world_v);
-        if let Ok(mut cursor_transform) = cursor_query.get_single_mut() {
-            cursor_transform.translation = Vec3::new(
-                v.x as f32 * TILE_SIZE,
-                v.y as f32 * TILE_SIZE,
-                CURSOR_Z
-            );
-        }
-
-        if buttons.just_pressed(MouseButton::Left) {
+    if buttons.just_pressed(MouseButton::Left) {
+            if let Some(v) = cursor.v {
             match assets.current_input {
                 InputType::PlaceStructure(e) => ev_command.send(
                     CommandEvent(CommandType::PlaceStructure(e, v))
                 ),
                 InputType::None => ev_command.send(
                     CommandEvent(CommandType::UnplaceStructure(v))
-                )
+                ),
+                _ => ()
             }
         }
     }
@@ -82,6 +77,13 @@ pub fn init(
     assets: Res<InputAssets>
 ) {
     draw_structures_menu(&mut commands, &struct_query, &assets);
+}
+
+pub fn clear(
+    mut commands: Commands,
+    menu_query: Query<Entity, With<StructuresMenu>>
+) {
+    clear_menus(&mut commands, &menu_query);
 }
 
 pub fn reload(
@@ -160,3 +162,4 @@ fn get_structure_button_bundle(mut color: Color, selected: bool) -> ButtonBundle
 pub struct StructureButton {
     pub entity: Entity
 }
+
